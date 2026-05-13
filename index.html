@@ -31,8 +31,8 @@
 const { useState, useEffect, useCallback } = React;
 
 /* ── Config ── */
-const ACCESS_CODE = "BEYT2024";
-const MANAGER_PIN = "1234";
+const ACCESS_CODE = "Bilmal71";
+const MANAGER_PIN = "1925242029";
 const STORAGE_KEY = "beyt_orders_v1";
 
 /* ── Palette ── */
@@ -449,14 +449,15 @@ function SuccessSheet({order,onClose}) {
 function PinModal({onSuccess,onCancel}) {
   const [pin,setPin]=useState("");
   const [err,setErr]=useState(false);
+  const pinLen=MANAGER_PIN.length;
+  const validate=()=>{
+    if(pin===MANAGER_PIN)onSuccess();
+    else{setErr(true);setTimeout(()=>{setPin("");setErr(false);},600);}
+  };
   const press=k=>{
-    if(k==="del"){setPin(p=>p.slice(0,-1));return;}
-    if(pin.length>=4)return;
-    const next=pin+k;setPin(next);
-    if(next.length===4){
-      if(next===MANAGER_PIN)onSuccess();
-      else{setErr(true);setTimeout(()=>{setPin("");setErr(false);},600);}
-    }
+    if(k==="del"){setPin(p=>p.slice(0,-1));setErr(false);return;}
+    if(pin.length>=pinLen)return;
+    setPin(p=>p+k);
   };
   return (
     <Overlay>
@@ -466,11 +467,10 @@ function PinModal({onSuccess,onCancel}) {
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:700,color:C.text,marginBottom:4}}>
           Accès Manager
         </div>
-        <div style={{fontSize:13,color:C.muted,marginBottom:28}}>PIN par défaut : <b>{MANAGER_PIN}</b></div>
-        <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:32,
-          transform:err?"translateX(8px)":"none",transition:"transform 0.1s"}}>
-          {[0,1,2,3].map(i=>(
-            <div key={i} style={{width:18,height:18,borderRadius:"50%",
+        <div style={{fontSize:13,color:C.muted,marginBottom:28}}>Entrez votre code PIN</div>
+        <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:24,flexWrap:"wrap",maxWidth:280,margin:"0 auto 24px"}}>
+          {Array.from({length:MANAGER_PIN.length}).map((_,i)=>(
+            <div key={i} style={{width:14,height:14,borderRadius:"50%",
               background:pin.length>i?(err?"#ef4444":C.green):C.border,
               transition:"background 0.2s"}}/>
           ))}
@@ -488,6 +488,13 @@ function PinModal({onSuccess,onCancel}) {
             </button>
           ))}
         </div>
+        <button onClick={validate} disabled={pin.length===0}
+          style={{width:"100%",padding:"16px",borderRadius:14,border:"none",marginBottom:10,
+            background:pin.length>0?C.green:"#d1d5db",color:"#fff",
+            cursor:pin.length>0?"pointer":"not-allowed",fontSize:16,fontWeight:900,
+            boxShadow:pin.length>0?"0 4px 16px #5B7B5B44":"none",transition:"all 0.15s"}}>
+          Valider ✓
+        </button>
         <button onClick={onCancel}
           style={{width:"100%",padding:"14px",borderRadius:12,border:"1.5px solid "+C.border,
             background:"transparent",color:C.muted,cursor:"pointer",fontSize:15,fontWeight:700}}>
