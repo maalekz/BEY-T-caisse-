@@ -226,7 +226,7 @@ function AccessScreen({onUnlock}) {
   const [val,setVal]=useState("");
   const [err,setErr]=useState(false);
   const submit=()=>{
-    if(val.toUpperCase()===ACCESS_CODE){onUnlock();}
+    if(val===ACCESS_CODE){onUnlock();}
     else{setErr(true);setTimeout(()=>{setErr(false);setVal("");},1000);}
   };
   return (
