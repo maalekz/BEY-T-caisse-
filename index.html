@@ -350,6 +350,108 @@ function Btn({onClick,children,color,disabled,style={}}){
   );
 }
 
+
+/* ════════ FORMULA CONFIG ════════ */
+const FORMULA_CONFIG={
+  "Formule Sandwich":{
+    mainLabel:"Choisir le sandwich",
+    mainItems:["Taouk","Kafta","Sojok","Makanik","Shawarma","Foie de volaille","Falafel","Bey-T Poulet","Bey-T Viande","Houmous","Moutabal","Labneh","Halloumi"],
+    variants:[
+      {label:"Option 1",desc:"+ Petit houmous + Petit taboulé"},
+      {label:"Option 2",desc:"+ 1 Soda + 1 Baklawa"},
+      {label:"Option 3",desc:"+ 2 Beignets (viande ou fromage)"},
+    ]
+  },
+  "Formule Salade":{
+    mainLabel:"Choisir la salade",
+    mainItems:["Fatouche","Feta","Salade Poulet"],
+    variants:[{label:"Inclus",desc:"+ 2 Beignets + 1 Soda"}]
+  },
+  "Formule Assiette":{
+    mainLabel:"Choisir l'assiette",
+    mainItems:["Assiette Viande","Assiette Végé"],
+    variants:[{label:"Inclus",desc:"+ 1 Soda + 1 Baklawa"}]
+  },
+};
+const FORMULA_NAMES=Object.keys(FORMULA_CONFIG);
+
+/* ════════ FORMULA MODAL ════════ */
+function FormulaModal({item,onAdd,onClose}){
+  const cfg=FORMULA_CONFIG[item.name];
+  if(!cfg)return null;
+  const [main,setMain]=useState(null);
+  const [variant,setVariant]=useState(cfg.variants.length===1?0:null);
+  const ok=main!==null&&variant!==null;
+  const variantDesc=ok?cfg.variants[variant].desc:"";
+  const note=ok?main+" · "+variantDesc:"";
+  return (
+    <Modal onClose={onClose}>
+      <div style={{background:C.surface,borderRadius:24,padding:24,width:340,
+        maxHeight:"82vh",overflowY:"auto"}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,
+          color:C.text,marginBottom:2}}>{item.name}</div>
+        <div style={{fontSize:13,color:C.muted,marginBottom:18}}>{fmt(item.price)}</div>
+
+        <div style={{fontSize:12,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:8}}>
+          {cfg.mainLabel.toUpperCase()}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:18}}>
+          {cfg.mainItems.map(m=>(
+            <button key={m} onClick={()=>setMain(m)}
+              style={{padding:"11px 14px",borderRadius:12,cursor:"pointer",textAlign:"left",
+                border:main===m?"2px solid "+C.green:"1.5px solid "+C.border,
+                background:main===m?C.greenLt:C.bg,
+                color:main===m?C.green:C.text,fontWeight:main===m?800:600,fontSize:14}}>
+              {main===m?"✓ ":""}{m}
+            </button>
+          ))}
+        </div>
+
+        {cfg.variants.length>1&&(
+          <>
+            <div style={{fontSize:12,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:8}}>
+              ACCOMPAGNEMENT
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:18}}>
+              {cfg.variants.map((v,i)=>(
+                <button key={i} onClick={()=>setVariant(i)}
+                  style={{padding:"11px 14px",borderRadius:12,cursor:"pointer",textAlign:"left",
+                    border:variant===i?"2px solid "+C.green:"1.5px solid "+C.border,
+                    background:variant===i?C.greenLt:C.bg,
+                    color:variant===i?C.green:C.text,fontWeight:variant===i?800:600,fontSize:14}}>
+                  {variant===i?"✓ ":""}<b>{v.label}</b> {v.desc}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {ok&&(
+          <div style={{background:C.bg,borderRadius:12,padding:"10px 14px",
+            marginBottom:16,fontSize:13,color:C.muted,lineHeight:1.6}}>
+            📝 <b style={{color:C.text}}>{item.name}</b><br/>{note}
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onClose}
+            style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid "+C.border,
+              background:C.bg,color:C.muted,cursor:"pointer",fontWeight:700,fontSize:14}}>
+            Annuler
+          </button>
+          <button onClick={()=>ok&&onAdd({...item,note,qty:1})} disabled={!ok}
+            style={{flex:2,padding:"13px",borderRadius:12,border:"none",
+              background:ok?C.green:"#d1d5db",color:"#fff",
+              cursor:ok?"pointer":"not-allowed",fontWeight:900,fontSize:15,
+              boxShadow:ok?"0 4px 12px #5B7B5B44":"none"}}>
+            Ajouter à la commande ✓
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ════════ ACCESS SCREEN ════════ */
 function AccessScreen({onUnlock}){
   const [val,setVal]=useState("");
@@ -1226,6 +1328,7 @@ function BeytPOS(){
   const [menu,setMenu]=useState(DEFAULT_MENU);
   const [sheet,setSheet]=useState(null);
   const [lastOrder,setLastOrder]=useState(null);
+  const [formulaItem,setFormulaItem]=useState(null);
 
   useEffect(()=>{
     setOrders(load(SK_ORDERS,[]));
@@ -1253,10 +1356,15 @@ function BeytPOS(){
 
   const add=item=>{
     if(!item.available)return;
+    if(FORMULA_NAMES.includes(item.name)){setFormulaItem(item);return;}
     setCart(prev=>{
       const ex=prev.find(i=>i.id===item.id&&!i.note);
       return ex?prev.map(i=>i===ex?{...i,qty:i.qty+1}:i):[...prev,{...item,qty:1,note:""}];
     });
+  };
+  const addFormula=item=>{
+    setCart(prev=>[...prev,{...item}]);
+    setFormulaItem(null);
   };
   const quickDec=item=>setCart(prev=>{
     const ex=prev.find(i=>i.id===item.id&&!i.note);
@@ -1420,6 +1528,7 @@ function BeytPOS(){
       <Sheet open={sheet==="success"} onClose={()=>setSheet(null)}>
         {lastOrder&&<SuccessSheet order={lastOrder} onClose={()=>setSheet(null)}/>}
       </Sheet>
+      {formulaItem&&<FormulaModal item={formulaItem} onAdd={addFormula} onClose={()=>setFormulaItem(null)}/>}
       {sheet==="pin"&&<PinModal onSuccess={()=>setSheet("manager")} onCancel={()=>setSheet(null)}/>}
       {sheet==="manager"&&<ManagerModal orders={orders} menu={menu} setMenu={setMenu}
         onClose={()=>setSheet(null)} onClearOrders={clearOrders}/>}
