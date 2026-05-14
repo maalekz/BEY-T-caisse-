@@ -18,23 +18,10 @@
     ::-webkit-scrollbar{width:3px;height:3px;}
     ::-webkit-scrollbar-thumb{background:#E0D8C8;border-radius:99px;}
     .sheet-enter{transform:translateY(0)!important;}
-    @media print {
-      body * { visibility: hidden !important; }
-      #print-area, #print-area * { visibility: visible !important; }
-      #print-area {
-        position: fixed !important;
-        top: 0 !important; left: 0 !important;
-        width: 100% !important;
-        padding: 20px !important;
-        background: white !important;
-        z-index: 9999 !important;
-      }
-    }
   </style>
 </head>
 <body>
 <div id="root"></div>
-<div id="print-area" style="display:none"></div>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -238,45 +225,37 @@ function exportCSV(orders){
   a.click();
 }
 
-/* ── Print ticket (in-page, Safari-compatible) ── */
-function buildTicketHTML(order){
-  const remise=order.discount||0;
-  const rows=order.items.map(it=>`
-    <tr>
-      <td style="padding:4px 0;vertical-align:top">
-        <b>${it.name}</b>${it.note?`<br><span style="font-size:10px;color:#888;font-style:italic">${it.note}</span>`:""}
-      </td>
-      <td style="text-align:center;padding:4px 6px">x${it.qty}</td>
-      <td style="text-align:right;padding:4px 0;white-space:nowrap">${(it.price*it.qty).toFixed(2)} €</td>
-    </tr>`).join("");
-  return `
-    <div style="font-family:monospace;max-width:320px;margin:0 auto;font-size:14px;color:#1a1a1a">
-      <div style="text-align:center;font-size:18px;font-weight:900;letter-spacing:3px">BEY-T</div>
-      <div style="text-align:center;font-size:10px;color:#666;margin-bottom:10px">Traiteur Libanais - Paris</div>
-      <hr style="border:none;border-top:1px dashed #bbb;margin:8px 0"/>
-      <div style="text-align:center;font-size:28px;font-weight:900;color:#5B7B5B;letter-spacing:4px;margin:8px 0">#${order.num}</div>
-      <div style="text-align:center;font-size:11px;color:#888;margin-bottom:8px">${order.date} à ${order.time}</div>
-      <hr style="border:none;border-top:1px dashed #bbb;margin:8px 0"/>
-      <table style="width:100%;border-collapse:collapse">${rows}
-        ${remise>0?`<tr><td style="font-size:12px;color:#888;padding:3px 0">Remise</td><td></td><td style="text-align:right;font-size:12px;color:#888">-${remise.toFixed(2)} €</td></tr>`:""}
-        <tr style="border-top:2px solid #000">
-          <td style="font-size:15px;font-weight:900;padding-top:6px"><b>TOTAL</b></td>
-          <td></td>
-          <td style="text-align:right;font-size:15px;font-weight:900;padding-top:6px"><b>${order.total.toFixed(2)} €</b></td>
-        </tr>
-      </table>
-      <div style="text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700">
-        ${order.paymentLabel.replace(/[^\w\s]/g,"").trim()}
-      </div>
-      ${order.paymentMode==="cash"?`<div style="text-align:center;font-size:12px;color:#666">Rendu : ${(order.cashGiven-order.total).toFixed(2)} €</div>`:""}
-      <hr style="border:none;border-top:1px dashed #bbb;margin:10px 0"/>
-      <div style="text-align:center;font-size:10px;color:#999">Merci ! À bientôt chez Bey-T</div>
-    </div>`;
-}
-
+/* ── Print ticket ── */
 function doPrint(order){
-  const area=document.getElementById("print-area");
-  if(area){area.innerHTML=buildTicketHTML(order);window.print();}
+  const rows=order.items.map(it=>`
+    <tr><td>${it.name}${it.note?`<br><span style="font-size:10px;color:#888;font-style:italic">${it.note}</span>`:""}</td>
+    <td style="text-align:center">x${it.qty}</td>
+    <td style="text-align:right">${(it.price*it.qty).toFixed(2)} €</td></tr>`).join("");
+  const remise=order.discount||0;
+  const w=window.open("","_blank","width=420,height=700,menubar=no,toolbar=no,scrollbars=yes");
+  if(!w){alert("Autorisez les pop-ups dans Safari pour imprimer.\nRéglages > Safari > Bloquer les pop-ups : désactiver");return;}
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    body{font-family:monospace;width:290px;margin:0 auto;padding:20px;font-size:13px}
+    h1{text-align:center;font-size:20px;letter-spacing:3px;margin:0}
+    .s{text-align:center;font-size:10px;color:#666;margin-bottom:12px}
+    .n{text-align:center;font-size:28px;font-weight:900;color:#5B7B5B;letter-spacing:4px;margin:10px 0}
+    .d{text-align:center;font-size:11px;color:#888;margin-bottom:10px}
+    hr{border:none;border-top:1px dashed #bbb;margin:10px 0}
+    table{width:100%}td{padding:3px 0;vertical-align:top}
+    .tot td{font-size:15px;font-weight:900;border-top:2px solid #000;padding-top:6px}
+    .rem td{font-size:12px;color:#888;padding-top:2px}
+    .pay{text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700}
+    .footer{text-align:center;margin-top:14px;font-size:10px;color:#999}
+  </style></head><body>
+  <h1>BEY-T</h1><div class="s">Traiteur Libanais - Paris</div><hr>
+  <div class="n">#${order.num}</div><div class="d">${order.date} a ${order.time}</div><hr>
+  <table>${rows}
+  ${remise>0?`<tr class="rem"><td>Remise</td><td></td><td style="text-align:right">-${remise.toFixed(2)} €</td></tr>`:""}
+  <tr class="tot"><td><b>TOTAL</b></td><td></td><td style="text-align:right"><b>${order.total.toFixed(2)} €</b></td></tr></table>
+  <div class="pay">${order.paymentLabel.replace(/[^\w\s]/g,"").trim()}</div>
+  ${order.paymentMode==="cash"?`<div class="pay" style="color:#666">Rendu : ${(order.cashGiven-order.total).toFixed(2)} €</div>`:""}
+  <hr><div class="footer">Merci ! A bientot chez Bey-T</div></body></html>`);
+  w.document.close();w.focus();setTimeout(()=>w.print(),400);
 }
 
 /* ── Print Z-Report ── */
@@ -325,7 +304,8 @@ function printZReport(orders,date){
   <hr>
   <div class="footer">Bey-T Traiteur Libanais - Paris</div>
   </body></html>`);
-  w.document.close();w.focus();setTimeout(()=>w.print(),400);
+  w.document.write('<div style="margin:20px auto;max-width:300px;display:flex;flex-direction:column;gap:8px"><button onclick="window.print()" style="padding:12px;background:#5B7B5B;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:bold">Imprimer</button><button onclick="window.close()" style="padding:12px;background:#888;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer">Fermer</button></div>');
+  w.document.close();w.focus();
 }
 
 /* ════════ SHARED UI ════════ */
@@ -366,144 +346,6 @@ function Btn({onClick,children,color,disabled,style={}}){
         transition:"all 0.15s",opacity:disabled?0.6:1,...style}}>
       {children}
     </button>
-  );
-}
-
-
-/* ════════ PRINT PREVIEW MODAL ════════ */
-function PrintPreviewModal({order,onClose}){
-  return (
-    <Modal onClose={onClose}>
-      <div style={{background:C.surface,borderRadius:24,padding:24,width:340,maxHeight:"80vh",overflowY:"auto"}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,
-          color:C.text,marginBottom:16,textAlign:"center"}}>Aperçu du ticket</div>
-        <div style={{background:"#f9f9f9",borderRadius:12,padding:16,marginBottom:16}}
-          dangerouslySetInnerHTML={{__html:buildTicketHTML(order)}}/>
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={onClose}
-            style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid "+C.border,
-              background:C.bg,color:C.muted,cursor:"pointer",fontWeight:700,fontSize:14}}>
-            Fermer
-          </button>
-          <button onClick={()=>doPrint(order)}
-            style={{flex:2,padding:"13px",borderRadius:12,border:"none",
-              background:C.green,color:"#fff",cursor:"pointer",fontWeight:900,fontSize:15,
-              boxShadow:"0 4px 12px #5B7B5B44"}}>
-            🖨️ Imprimer
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-/* ════════ FORMULA CONFIG ════════ */
-const FORMULA_CONFIG={
-  "Formule Sandwich":{
-    desc:"1 sandwich au choix",
-    mainLabel:"Choisir le sandwich",
-    mainItems:["Taouk","Kafta","Sojok","Makanik","Shawarma","Foie de volaille","Falafel","Bey-T Poulet","Bey-T Viande","Houmous","Moutabal","Labneh","Halloumi"],
-    variants:[
-      {label:"Option 1",desc:"+ Petit houmous + Petit taboulé"},
-      {label:"Option 2",desc:"+ 1 Soda + 1 Baklawa"},
-      {label:"Option 3",desc:"+ 2 Beignets (viande ou fromage)"},
-    ]
-  },
-  "Formule Salade":{
-    desc:"1 salade au choix",
-    mainLabel:"Choisir la salade",
-    mainItems:["Fatouche","Feta","Salade Poulet"],
-    variants:[{label:"Inclus",desc:"+ 2 Beignets + 1 Soda"}]
-  },
-  "Formule Assiette":{
-    desc:"1 assiette composée au choix",
-    mainLabel:"Choisir l'assiette",
-    mainItems:["Assiette Viande","Assiette Végé"],
-    variants:[{label:"Inclus",desc:"+ 1 Soda + 1 Baklawa"}]
-  },
-};
-const FORMULA_NAMES=Object.keys(FORMULA_CONFIG);
-
-/* ════════ FORMULA MODAL ════════ */
-function FormulaModal({item,onAdd,onClose}){
-  const cfg=FORMULA_CONFIG[item.name];
-  if(!cfg)return null;
-  const [main,setMain]=useState(null);
-  const [variant,setVariant]=useState(cfg.variants.length===1?0:null);
-  const ok=main!==null&&variant!==null;
-  const note=ok?`${main} · ${cfg.variants[variant].desc}`:"";
-
-  return (
-    <Modal onClose={onClose}>
-      <div style={{background:C.surface,borderRadius:24,padding:24,width:340,
-        maxHeight:"80vh",overflowY:"auto"}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:700,
-          color:C.text,marginBottom:2}}>{item.name}</div>
-        <div style={{fontSize:13,color:C.muted,marginBottom:20}}>
-          {fmt(item.price)} · {cfg.desc}
-        </div>
-
-        {/* Main item choice */}
-        <div style={{fontSize:12,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:8}}>
-          {cfg.mainLabel.toUpperCase()}
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:18}}>
-          {cfg.mainItems.map(m=>(
-            <button key={m} onClick={()=>setMain(m)}
-              style={{padding:"11px 14px",borderRadius:12,cursor:"pointer",textAlign:"left",
-                border:main===m?"2px solid "+C.green:"1.5px solid "+C.border,
-                background:main===m?C.greenLt:C.bg,
-                color:main===m?C.green:C.text,fontWeight:main===m?800:600,fontSize:14}}>
-              {main===m?"✓ ":""}{m}
-            </button>
-          ))}
-        </div>
-
-        {/* Variant choice (only if multiple) */}
-        {cfg.variants.length>1&&(
-          <>
-            <div style={{fontSize:12,fontWeight:800,color:C.muted,letterSpacing:1,marginBottom:8}}>
-              ACCOMPAGNEMENT
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:18}}>
-              {cfg.variants.map((v,i)=>(
-                <button key={i} onClick={()=>setVariant(i)}
-                  style={{padding:"11px 14px",borderRadius:12,cursor:"pointer",textAlign:"left",
-                    border:variant===i?"2px solid "+C.green:"1.5px solid "+C.border,
-                    background:variant===i?C.greenLt:C.bg,
-                    color:variant===i?C.green:C.text,fontWeight:variant===i?800:600,fontSize:14}}>
-                  {variant===i?"✓ ":""}<b>{v.label}</b> {v.desc}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Recap */}
-        {ok&&(
-          <div style={{background:C.bg,borderRadius:12,padding:"10px 14px",
-            marginBottom:16,fontSize:13,color:C.muted,lineHeight:1.6}}>
-            📝 <b style={{color:C.text}}>{item.name}</b><br/>
-            {note}
-          </div>
-        )}
-
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={onClose}
-            style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid "+C.border,
-              background:C.bg,color:C.muted,cursor:"pointer",fontWeight:700,fontSize:14}}>
-            Annuler
-          </button>
-          <button onClick={()=>ok&&onAdd({...item,note,qty:1})} disabled={!ok}
-            style={{flex:2,padding:"13px",borderRadius:12,border:"none",
-              background:ok?C.green:"#d1d5db",color:"#fff",
-              cursor:ok?"pointer":"not-allowed",fontWeight:900,fontSize:15,
-              boxShadow:ok?"0 4px 12px #5B7B5B44":"none"}}>
-            Ajouter à la commande ✓
-          </button>
-        </div>
-      </div>
-    </Modal>
   );
 }
 
@@ -825,7 +667,6 @@ function PaymentSheet({total,onConfirm,onBack}){
 
 /* ════════ SUCCESS SHEET ════════ */
 function SuccessSheet({order,onClose}){
-  const [printPreview,setPrintPreview]=useState(false);
   return (<>
     <div style={{padding:"20px 20px 10px",textAlign:"center",flexShrink:0}}>
       <div style={{fontSize:52,marginBottom:8}}>✅</div>
@@ -860,7 +701,7 @@ function SuccessSheet({order,onClose}){
       </div>
     </div>
     <div style={{padding:"16px 20px",display:"flex",gap:12,flexShrink:0}}>
-      <button onClick={()=>setPrintPreview(true)}
+      <button onClick={()=>doPrint(order)}
         style={{flex:1,padding:"16px",borderRadius:14,border:"1.5px solid "+C.border,
           background:C.bg,color:C.text,fontSize:15,fontWeight:700,cursor:"pointer"}}>
         🖨️ Imprimer
@@ -1384,7 +1225,6 @@ function BeytPOS(){
   const [menu,setMenu]=useState(DEFAULT_MENU);
   const [sheet,setSheet]=useState(null);
   const [lastOrder,setLastOrder]=useState(null);
-  const [formulaItem,setFormulaItem]=useState(null);
 
   useEffect(()=>{
     setOrders(load(SK_ORDERS,[]));
@@ -1412,15 +1252,10 @@ function BeytPOS(){
 
   const add=item=>{
     if(!item.available)return;
-    if(FORMULA_NAMES.includes(item.name)){setFormulaItem(item);return;}
     setCart(prev=>{
       const ex=prev.find(i=>i.id===item.id&&!i.note);
       return ex?prev.map(i=>i===ex?{...i,qty:i.qty+1}:i):[...prev,{...item,qty:1,note:""}];
     });
-  };
-  const addFormula=item=>{
-    setCart(prev=>[...prev,{...item}]);
-    setFormulaItem(null);
   };
   const quickDec=item=>setCart(prev=>{
     const ex=prev.find(i=>i.id===item.id&&!i.note);
@@ -1584,8 +1419,6 @@ function BeytPOS(){
       <Sheet open={sheet==="success"} onClose={()=>setSheet(null)}>
         {lastOrder&&<SuccessSheet order={lastOrder} onClose={()=>setSheet(null)}/>}
       </Sheet>
-      {formulaItem&&<FormulaModal item={formulaItem}
-        onAdd={addFormula} onClose={()=>setFormulaItem(null)}/>}
       {sheet==="pin"&&<PinModal onSuccess={()=>setSheet("manager")} onCancel={()=>setSheet(null)}/>}
       {sheet==="manager"&&<ManagerModal orders={orders} menu={menu} setMenu={setMenu}
         onClose={()=>setSheet(null)} onClearOrders={clearOrders}/>}
