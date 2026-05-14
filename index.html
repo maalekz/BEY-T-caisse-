@@ -254,7 +254,7 @@ function doPrint(order){
   <tr class="tot"><td><b>TOTAL</b></td><td></td><td style="text-align:right"><b>${order.total.toFixed(2)} €</b></td></tr></table>
   <div class="pay">${order.paymentLabel.replace(/[^\w\s]/g,"").trim()}</div>
   ${order.paymentMode==="cash"?`<div class="pay" style="color:#666">Rendu : ${(order.cashGiven-order.total).toFixed(2)} €</div>`:""}
-  <hr><div class="footer">Merci ! A bientot chez Bey-T</div></body></html>`);
+  <hr><div style="font-size:10px;color:#999;text-align:center;margin:4px 0">HT : ${(order.total/1.1).toFixed(2)} € &nbsp;|&nbsp; Dont TVA 10% : ${(order.total-order.total/1.1).toFixed(2)} €</div><hr><div class="footer">Merci ! A bientot chez Bey-T</div></body></html>`);
   w.document.close();w.focus();setTimeout(()=>w.print(),400);
 }
 
