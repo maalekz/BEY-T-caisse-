@@ -18,10 +18,23 @@
     ::-webkit-scrollbar{width:3px;height:3px;}
     ::-webkit-scrollbar-thumb{background:#E0D8C8;border-radius:99px;}
     .sheet-enter{transform:translateY(0)!important;}
+    @media print {
+      body * { visibility: hidden !important; }
+      #print-area, #print-area * { visibility: visible !important; }
+      #print-area {
+        position: fixed !important;
+        top: 0 !important; left: 0 !important;
+        width: 100% !important;
+        padding: 20px !important;
+        background: white !important;
+        z-index: 9999 !important;
+      }
+    }
   </style>
 </head>
 <body>
 <div id="root"></div>
+<div id="print-area" style="display:none"></div>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -225,40 +238,45 @@ function exportCSV(orders){
   a.click();
 }
 
-/* ── Print ticket ── */
-function doPrint(order){
-  const rows=order.items.map(it=>`
-    <tr><td>${it.name}${it.note?`<br><span style="font-size:10px;color:#888;font-style:italic">${it.note}</span>`:""}</td>
-    <td style="text-align:center">x${it.qty}</td>
-    <td style="text-align:right">${(it.price*it.qty).toFixed(2)} €</td></tr>`).join("");
+/* ── Print ticket (in-page, Safari-compatible) ── */
+function buildTicketHTML(order){
   const remise=order.discount||0;
-  const w=window.open("","_blank","width=360,height=680");
-  if(!w)return;
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body{font-family:monospace;width:290px;margin:0 auto;padding:20px;font-size:13px}
-    h1{text-align:center;font-size:20px;letter-spacing:3px;margin:0}
-    .s{text-align:center;font-size:10px;color:#666;margin-bottom:12px}
-    .n{text-align:center;font-size:28px;font-weight:900;color:#5B7B5B;letter-spacing:4px;margin:10px 0}
-    .d{text-align:center;font-size:11px;color:#888;margin-bottom:10px}
-    hr{border:none;border-top:1px dashed #bbb;margin:10px 0}
-    table{width:100%}td{padding:3px 0;vertical-align:top}
-    .tot td{font-size:15px;font-weight:900;border-top:2px solid #000;padding-top:6px}
-    .rem td{font-size:12px;color:#888;padding-top:2px}
-    .pay{text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700}
-    .footer{text-align:center;margin-top:14px;font-size:10px;color:#999}
-  </style></head><body>
-  <h1>BEY-T</h1><div class="s">Traiteur Libanais - Paris</div><hr>
-  <div class="n">#${order.num}</div><div class="d">${order.date} a ${order.time}</div><hr>
-  <table>${rows}
-  ${remise>0?`<tr class="rem"><td>Remise</td><td></td><td style="text-align:right">-${remise.toFixed(2)} €</td></tr>`:""}
-  <tr class="tot"><td><b>TOTAL</b></td><td></td><td style="text-align:right"><b>${order.total.toFixed(2)} €</b></td></tr></table>
-  <div class="pay">${order.paymentLabel.replace(/[^\w\s]/g,"").trim()}</div>
-  ${order.paymentMode==="cash"?`<div class="pay" style="color:#666">Rendu : ${(order.cashGiven-order.total).toFixed(2)} €</div>`:""}
-  <hr><div class="footer">Merci ! A bientot chez Bey-T</div></body></html>`);
-  w.document.write('<div style="text-align:center;margin-top:20px"><button onclick="window.close()" style="padding:10px 28px;background:#5B7B5B;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-family:monospace">← Fermer</button></div>');
-  w.document.close();w.focus();
-  w.onafterprint=()=>w.close();
-  setTimeout(()=>w.print(),400);
+  const rows=order.items.map(it=>`
+    <tr>
+      <td style="padding:4px 0;vertical-align:top">
+        <b>${it.name}</b>${it.note?`<br><span style="font-size:10px;color:#888;font-style:italic">${it.note}</span>`:""}
+      </td>
+      <td style="text-align:center;padding:4px 6px">x${it.qty}</td>
+      <td style="text-align:right;padding:4px 0;white-space:nowrap">${(it.price*it.qty).toFixed(2)} €</td>
+    </tr>`).join("");
+  return `
+    <div style="font-family:monospace;max-width:320px;margin:0 auto;font-size:14px;color:#1a1a1a">
+      <div style="text-align:center;font-size:18px;font-weight:900;letter-spacing:3px">BEY-T</div>
+      <div style="text-align:center;font-size:10px;color:#666;margin-bottom:10px">Traiteur Libanais - Paris</div>
+      <hr style="border:none;border-top:1px dashed #bbb;margin:8px 0"/>
+      <div style="text-align:center;font-size:28px;font-weight:900;color:#5B7B5B;letter-spacing:4px;margin:8px 0">#${order.num}</div>
+      <div style="text-align:center;font-size:11px;color:#888;margin-bottom:8px">${order.date} à ${order.time}</div>
+      <hr style="border:none;border-top:1px dashed #bbb;margin:8px 0"/>
+      <table style="width:100%;border-collapse:collapse">${rows}
+        ${remise>0?`<tr><td style="font-size:12px;color:#888;padding:3px 0">Remise</td><td></td><td style="text-align:right;font-size:12px;color:#888">-${remise.toFixed(2)} €</td></tr>`:""}
+        <tr style="border-top:2px solid #000">
+          <td style="font-size:15px;font-weight:900;padding-top:6px"><b>TOTAL</b></td>
+          <td></td>
+          <td style="text-align:right;font-size:15px;font-weight:900;padding-top:6px"><b>${order.total.toFixed(2)} €</b></td>
+        </tr>
+      </table>
+      <div style="text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700">
+        ${order.paymentLabel.replace(/[^\w\s]/g,"").trim()}
+      </div>
+      ${order.paymentMode==="cash"?`<div style="text-align:center;font-size:12px;color:#666">Rendu : ${(order.cashGiven-order.total).toFixed(2)} €</div>`:""}
+      <hr style="border:none;border-top:1px dashed #bbb;margin:10px 0"/>
+      <div style="text-align:center;font-size:10px;color:#999">Merci ! À bientôt chez Bey-T</div>
+    </div>`;
+}
+
+function doPrint(order){
+  const area=document.getElementById("print-area");
+  if(area){area.innerHTML=buildTicketHTML(order);window.print();}
 }
 
 /* ── Print Z-Report ── */
@@ -351,6 +369,33 @@ function Btn({onClick,children,color,disabled,style={}}){
   );
 }
 
+
+/* ════════ PRINT PREVIEW MODAL ════════ */
+function PrintPreviewModal({order,onClose}){
+  return (
+    <Modal onClose={onClose}>
+      <div style={{background:C.surface,borderRadius:24,padding:24,width:340,maxHeight:"80vh",overflowY:"auto"}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:700,
+          color:C.text,marginBottom:16,textAlign:"center"}}>Aperçu du ticket</div>
+        <div style={{background:"#f9f9f9",borderRadius:12,padding:16,marginBottom:16}}
+          dangerouslySetInnerHTML={{__html:buildTicketHTML(order)}}/>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onClose}
+            style={{flex:1,padding:"13px",borderRadius:12,border:"1.5px solid "+C.border,
+              background:C.bg,color:C.muted,cursor:"pointer",fontWeight:700,fontSize:14}}>
+            Fermer
+          </button>
+          <button onClick={()=>doPrint(order)}
+            style={{flex:2,padding:"13px",borderRadius:12,border:"none",
+              background:C.green,color:"#fff",cursor:"pointer",fontWeight:900,fontSize:15,
+              boxShadow:"0 4px 12px #5B7B5B44"}}>
+            🖨️ Imprimer
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 /* ════════ FORMULA CONFIG ════════ */
 const FORMULA_CONFIG={
@@ -780,6 +825,7 @@ function PaymentSheet({total,onConfirm,onBack}){
 
 /* ════════ SUCCESS SHEET ════════ */
 function SuccessSheet({order,onClose}){
+  const [printPreview,setPrintPreview]=useState(false);
   return (<>
     <div style={{padding:"20px 20px 10px",textAlign:"center",flexShrink:0}}>
       <div style={{fontSize:52,marginBottom:8}}>✅</div>
@@ -814,7 +860,7 @@ function SuccessSheet({order,onClose}){
       </div>
     </div>
     <div style={{padding:"16px 20px",display:"flex",gap:12,flexShrink:0}}>
-      <button onClick={()=>doPrint(order)}
+      <button onClick={()=>setPrintPreview(true)}
         style={{flex:1,padding:"16px",borderRadius:14,border:"1.5px solid "+C.border,
           background:C.bg,color:C.text,fontSize:15,fontWeight:700,cursor:"pointer"}}>
         🖨️ Imprimer
