@@ -247,7 +247,7 @@ function doPrint(order){
     .pay{text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700}
     .footer{text-align:center;margin-top:14px;font-size:10px;color:#999}
   </style></head><body>
-  <h1>BEY-T</h1><div class="s">Traiteur Libanais - Paris</div><hr>
+  <h1>BEY-T</h1><div class="s">62 Av. Pierre Grenier, 92100 Boulogne-Billancourt</div><hr>
   <div class="n">#${order.num}</div><div class="d">${order.date} a ${order.time}</div><hr>
   <table>${rows}
   ${remise>0?`<tr class="rem"><td>Remise</td><td></td><td style="text-align:right">-${remise.toFixed(2)} €</td></tr>`:""}
@@ -303,7 +303,7 @@ function printZReport(orders,date){
   <h2>Top articles du jour</h2>
   <table>${top.map(([n,q])=>`<tr><td>${n}</td><td style="text-align:right">${q} vdu</td></tr>`).join("")}</table>
   <hr>
-  <div class="footer">Bey-T Traiteur Libanais - Paris</div>
+  <div class="footer">Bey-T 62 Av. Pierre Grenier, 92100 Boulogne-Billancourt</div>
   </body></html>`);
   w.document.write('<div style="margin:20px auto;max-width:300px;display:flex;flex-direction:column;gap:8px"><button onclick="window.print()" style="padding:12px;background:#5B7B5B;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:bold">Imprimer</button><button onclick="window.close()" style="padding:12px;background:#888;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer">Fermer</button></div>');
   w.document.close();w.focus();
