@@ -1,41 +1,20 @@
 
 added 7 packages in 2s
-✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+✘ [ERROR] Could not resolve "react"
 
-    ../../../../../tmp/app.jsx:147:34:
-      147 │   Object.entries(payMap).forEach(([label,s])=>
-          ╵                                   ^
+    ../../../../../tmp/app.jsx:2:59:
+      2 │ import React, {useState,useEffect,useRef,useCallback} from 'react';
+        ╵                                                            ~~~~~~~
 
-✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+  You can mark the path "react" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
 
-    ../../../../../tmp/app.jsx:161:41:
-      161 │   Object.entries(dayMap).sort().forEach(([date,s])=>
-          ╵                                          ^
+✘ [ERROR] Could not resolve "react-dom/client"
 
-✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+    ../../../../../tmp/app.jsx:3:25:
+      3 │ import {createRoot} from 'react-dom/client';
+        ╵                          ~~~~~~~~~~~~~~~~~~
 
-    ../../../../../tmp/app.jsx:176:42:
-      176 │   Object.entries(hourMap).sort().forEach(([h,s])=>
-          ╵                                           ^
+  You can mark the path "react-dom/client" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
 
-✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
-
-    ../../../../../tmp/app.jsx:191:63:
-      191 │ ...ct.entries(prod).sort((a,b)=>b[1].qty-a[1].qty).forEach(([n,s])=>
-          ╵                                                             ^
-
-✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
-
-    ../../../../../tmp/app.jsx:252:25:
-      252 │   const topRows=top.map(([n,q])=>'<tr><td>'+n+'</td><td style="te...
-          ╵                          ^
-
-✘ [ERROR] Expected ";" but found "AFFAIRES"
-
-    ../../../../../tmp/app.jsx:258:73:
-      258 │ ...ize:12px;font-weight:bold;margin:6px 0">CHIFFRE D'AFFAIRES</div>'
-          │                                                      ~~~~~~~~
-          ╵                                                      ;
-
-6 errors
+2 errors
 BUILD_STATUS=1
