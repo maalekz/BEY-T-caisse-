@@ -31,24 +31,35 @@ jobs:
           new="import React, {useState,useEffect,useRef,useCallback} from 'react';\nimport {createRoot} from 'react-dom/client';"
           if old not in code:
               raise SystemExit('React hook declaration not found')
-          code=code.replace(old,new,1)
-          code=code.replace('ReactDOM.createRoot(', 'createRoot(', 1)
+          code=code.replace(old,new,1).replace('ReactDOM.createRoot(', 'createRoot(', 1)
           Path('/tmp/app.jsx').write_text(code,encoding='utf-8')
-          s=s.replace('<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>\n','')
-          s=s.replace('<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>\n','')
-          s=s.replace('<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>\n','')
-          s=s[:m.start()]+'<script src="./bundle.js"></script>'+s[m.end():]
+          s=re.sub(r'<script src="https://unpkg.com/react@18/umd/react\.production\.min\.js"></script>\s*','',s)
+          s=re.sub(r'<script src="https://unpkg.com/react-dom@18/umd/react-dom\.production\.min\.js"></script>\s*','',s)
+          s=re.sub(r'<script src="https://unpkg.com/@babel/standalone/babel\.min\.js"></script>\s*','',s)
+          s=re.sub(r'<script type="text/babel">.*?</script>','<script src="./bundle.js"></script>',s,flags=re.S)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Bundle React app locally
+      - name: Bundle and capture result
         run: |
-          npm install --no-save react@18 react-dom@18 esbuild
-          npx esbuild /tmp/app.jsx --bundle --minify --format=iife --target=safari14 --outfile=bundle.js
-      - name: Commit local bundle
+          set +e
+          npm install --no-save react@18 react-dom@18 esbuild > build-log.txt 2>&1
+          STATUS=$?
+          if [ $STATUS -eq 0 ]; then
+            npx esbuild /tmp/app.jsx --bundle --minify --format=iife --target=safari14 --outfile=bundle.js >> build-log.txt 2>&1
+            STATUS=$?
+          fi
+          echo "BUILD_STATUS=$STATUS" >> build-log.txt
+          exit 0
+      - name: Commit result
         run: |
-          rm .github/workflows/build-local-bundle.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html bundle.js .github/workflows/build-local-bundle.yml
-          git commit -m "Bundle app locally for GitHub Pages"
+          if [ -f bundle.js ]; then
+            rm -f .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2
+            git add -A index.html bundle.js .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2
+            git commit -m "Bundle app locally for GitHub Pages"
+          else
+            git add build-log.txt
+            git commit -m "Record app build failure"
+          fi
           git push
