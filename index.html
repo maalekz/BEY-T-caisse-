@@ -18,10 +18,24 @@
     ::-webkit-scrollbar{width:3px;height:3px;}
     ::-webkit-scrollbar-thumb{background:#E0D8C8;border-radius:99px;}
     .sheet-enter{transform:translateY(0)!important;}
+    @media print {
+      body > #root { display: none !important; }
+      #ticket-print { display: block !important; }
+    }
+    #ticket-print {
+      display: none;
+      font-family: monospace;
+      width: 300px;
+      margin: 0 auto;
+      padding: 20px;
+      font-size: 13px;
+      color: #1a1a1a;
+    }
   </style>
 </head>
 <body>
 <div id="root"></div>
+<div id="ticket-print"></div>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -225,41 +239,45 @@ function exportCSV(orders){
   a.click();
 }
 
-/* ── Print ticket ── */
+/* ── Print ticket (direct AirPrint, no popup) ── */
 function doPrint(order){
-  const rows=order.items.map(it=>`
-    <tr><td>${it.name}${it.note?`<br><span style="font-size:10px;color:#888;font-style:italic">${it.note}</span>`:""}</td>
-    <td style="text-align:center">x${it.qty}</td>
-    <td style="text-align:right">${(it.price*it.qty).toFixed(2)} €</td></tr>`).join("");
   const remise=order.discount||0;
-  const w=window.open("","_blank","width=420,height=700,menubar=no,toolbar=no,scrollbars=yes");
-  if(!w){alert("Autorisez les pop-ups dans Safari pour imprimer.\nRéglages > Safari > Bloquer les pop-ups : désactiver");return;}
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body{font-family:monospace;width:290px;margin:0 auto;padding:20px;font-size:13px}
-    h1{text-align:center;font-size:20px;letter-spacing:3px;margin:0}
-    .s{text-align:center;font-size:10px;color:#666;margin-bottom:12px}
-    .n{text-align:center;font-size:28px;font-weight:900;color:#5B7B5B;letter-spacing:4px;margin:10px 0}
-    .d{text-align:center;font-size:11px;color:#888;margin-bottom:10px}
-    hr{border:none;border-top:1px dashed #bbb;margin:10px 0}
-    table{width:100%}td{padding:3px 0;vertical-align:top}
-    .tot td{font-size:15px;font-weight:900;border-top:2px solid #000;padding-top:6px}
-    .rem td{font-size:12px;color:#888;padding-top:2px}
-    .pay{text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700}
-    .footer{text-align:center;margin-top:14px;font-size:10px;color:#999}
-  </style></head><body>
-  <h1>BEY-T</h1><div class="s">62 Av. Pierre Grenier, 92100 Boulogne-Billancourt</div><hr>
-  <div class="n">#${order.num}</div><div class="d">${order.date} a ${order.time}</div><hr>
-  <table>${rows}
-  ${remise>0?`<tr class="rem"><td>Remise</td><td></td><td style="text-align:right">-${remise.toFixed(2)} €</td></tr>`:""}
-  <tr class="tot"><td><b>TOTAL</b></td><td></td><td style="text-align:right"><b>${order.total.toFixed(2)} €</b></td></tr></table>
-  <div class="pay">${order.paymentLabel.replace(/[^\w\s]/g,"").trim()}</div>
-  ${order.paymentMode==="cash"?`<div class="pay" style="color:#666">Rendu : ${(order.cashGiven-order.total).toFixed(2)} €</div>`:""}
-  <hr><div style="font-size:10px;color:#999;text-align:center;margin:4px 0">HT : ${(order.total/1.1).toFixed(2)} € &nbsp;|&nbsp; Dont TVA 10% : ${(order.total-order.total/1.1).toFixed(2)} €</div><hr><div class="footer">Merci ! A bientot chez Bey-T</div><div style=\"margin:24px auto 0;max-width:280px;display:flex;flex-direction:column;gap:10px\"><button onclick=\"window.print()\" style=\"padding:14px;background:#5B7B5B;color:#fff;border:none;border-radius:12px;font-size:16px;cursor:pointer;font-weight:bold;width:100%\">🖨️ Imprimer</button><button onclick=\"window.close()\" style=\"padding:14px;background:#888;color:#fff;border:none;border-radius:12px;font-size:16px;cursor:pointer;width:100%\">✕ Fermer</button></div></body></html>`);
-  w.document.close();
-  w.focus();
+  const rows=order.items.map(it=>{
+    let r='<tr><td style="padding:3px 0;vertical-align:top"><b>'+it.name+'</b>';
+    if(it.note) r+='<br><i style="font-size:10px;color:#888">'+it.note+'</i>';
+    r+='</td><td style="text-align:center;padding:0 8px">x'+it.qty+'</td>';
+    r+='<td style="text-align:right">'+(it.price*it.qty).toFixed(2)+' €</td></tr>';
+    return r;
+  }).join('');
+  const tva=(order.total-order.total/1.1).toFixed(2);
+  const ht=(order.total/1.1).toFixed(2);
+  const ticket=
+    '<div style="text-align:center;font-size:18px;font-weight:900;letter-spacing:3px">BEY-T</div>'
+   +'<div style="text-align:center;font-size:10px;color:#666;margin-bottom:10px">62 Av. Pierre Grenier, 92100 Boulogne-Billancourt</div>'
+   +'<hr style="border:none;border-top:1px dashed #bbb;margin:8px 0">'
+   +'<div style="text-align:center;font-size:26px;font-weight:900;color:#5B7B5B;letter-spacing:3px;margin:8px 0">#'+order.num+'</div>'
+   +'<div style="text-align:center;font-size:11px;color:#888;margin-bottom:8px">'+order.date+' à '+order.time+'</div>'
+   +'<hr style="border:none;border-top:1px dashed #bbb;margin:8px 0">'
+   +'<table style="width:100%;border-collapse:collapse">'+rows
+   +(remise>0?'<tr><td style="font-size:11px;color:#888;padding:3px 0">Remise</td><td></td><td style="text-align:right;font-size:11px;color:#888">-'+remise.toFixed(2)+' €</td></tr>':"")
+   +'<tr style="border-top:2px solid #000"><td style="font-size:15px;font-weight:900;padding-top:6px"><b>TOTAL</b></td><td></td>'
+   +'<td style="text-align:right;font-size:15px;font-weight:900;padding-top:6px"><b>'+order.total.toFixed(2)+' €</b></td></tr>'
+   +'</table>'
+   +'<div style="text-align:center;margin-top:8px;font-size:12px;color:#5B7B5B;font-weight:700">'+order.paymentLabel.replace(/[^\w\s]/g,"").trim()+'</div>'
+   +(order.paymentMode==="cash"?'<div style="text-align:center;font-size:12px;color:#666">Rendu : '+(order.cashGiven-order.total).toFixed(2)+' €</div>':"")
+   +'<hr style="border:none;border-top:1px dashed #bbb;margin:8px 0">'
+   +'<div style="text-align:center;font-size:10px;color:#999">HT : '+ht+' € &nbsp;|&nbsp; Dont TVA 10% : '+tva+' €</div>'
+   +'<hr style="border:none;border-top:1px dashed #bbb;margin:8px 0">'
+   +'<div style="text-align:center;font-size:10px;color:#999">Merci ! À bientôt chez Bey-T</div>';
+  const el=document.getElementById('ticket-print');
+  if(el){
+    el.innerHTML=ticket;
+    window.print();
+    setTimeout(()=>{el.innerHTML='';},2000);
+  }
 }
 
-/* ── Print Z-Report ── */
+/* ── Print Z-Report (direct AirPrint) ── */
 function printZReport(orders,date){
   const dayOrders=orders.filter(o=>o.date===date);
   const ca=dayOrders.reduce((s,o)=>s+o.total,0);
@@ -271,42 +289,34 @@ function printZReport(orders,date){
     prod[it.name]+=it.qty;
   }));
   const top=Object.entries(prod).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const w=window.open("","_blank","width=380,height=700");
-  if(!w)return;
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-    body{font-family:monospace;width:300px;margin:0 auto;padding:20px;font-size:13px}
-    h1{text-align:center;font-size:18px;font-weight:900;margin:0}
-    h2{font-size:13px;margin:12px 0 6px;text-transform:uppercase}
-    .date{text-align:center;font-size:12px;color:#666;margin-bottom:12px}
-    hr{border:none;border-top:1px solid #000;margin:10px 0}
-    .dashed{border-top:1px dashed #bbb}
-    table{width:100%}td{padding:3px 0}
-    .big{font-size:22px;font-weight:900;text-align:center;color:#5B7B5B;margin:8px 0}
-    .footer{text-align:center;margin-top:16px;font-size:10px;color:#999}
-  </style></head><body>
-  <h1>BEY-T - RAPPORT DE CLOTURE</h1>
-  <div class="date">Service du ${date} - Imprime le ${new Date().toLocaleString("fr-FR")}</div><hr>
-  <h2>Chiffre d affaires</h2>
-  <div class="big">${ca.toFixed(2)} EUR</div>
-  <table>
-    <tr><td>Nb commandes</td><td style="text-align:right">${dayOrders.length}</td></tr>
-    <tr><td>Panier moyen</td><td style="text-align:right">${dayOrders.length?((ca/dayOrders.length).toFixed(2)):"0.00"} EUR</td></tr>
-  </table>
-  <hr class="dashed">
-  <h2>Par mode de paiement</h2>
-  <table>
-    <tr><td>Cash</td><td style="text-align:right">${pay.cash.toFixed(2)} EUR</td></tr>
-    <tr><td>Carte</td><td style="text-align:right">${pay.carte.toFixed(2)} EUR</td></tr>
-    <tr><td>Ticket Resto</td><td style="text-align:right">${pay.ticket.toFixed(2)} EUR</td></tr>
-  </table>
-  <hr class="dashed">
-  <h2>Top articles du jour</h2>
-  <table>${top.map(([n,q])=>`<tr><td>${n}</td><td style="text-align:right">${q} vdu</td></tr>`).join("")}</table>
-  <hr>
-  <div class="footer">Bey-T 62 Av. Pierre Grenier, 92100 Boulogne-Billancourt</div>
-  </body></html>`);
-  w.document.write('<div style="margin:20px auto;max-width:300px;display:flex;flex-direction:column;gap:8px"><button onclick="window.print()" style="padding:12px;background:#5B7B5B;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:bold">Imprimer</button><button onclick="window.close()" style="padding:12px;background:#888;color:#fff;border:none;border-radius:10px;font-size:15px;cursor:pointer">Fermer</button></div>');
-  w.document.close();w.focus();
+  const topRows=top.map(([n,q])=>'<tr><td>'+n+'</td><td style="text-align:right">'+q+' vdu</td></tr>').join('');
+  const avg=dayOrders.length?(ca/dayOrders.length).toFixed(2):'0.00';
+  const report=
+    '<div style="text-align:center;font-size:16px;font-weight:900;letter-spacing:2px">BEY-T - RAPPORT DE CLOTURE</div>'
+   +'<div style="text-align:center;font-size:10px;color:#666;margin-bottom:10px">Service du '+date+'</div>'
+   +'<hr style="border:none;border-top:1px solid #000;margin:8px 0">'
+   +'<div style="font-size:12px;font-weight:bold;margin:6px 0">CHIFFRE D'AFFAIRES</div>'
+   +'<div style="font-size:24px;font-weight:900;color:#5B7B5B;text-align:center;margin:6px 0">'+ca.toFixed(2)+' €</div>'
+   +'<table style="width:100%;font-size:12px"><tr><td>Nb commandes</td><td style="text-align:right">'+dayOrders.length+'</td></tr>'
+   +'<tr><td>Panier moyen</td><td style="text-align:right">'+avg+' €</td></tr></table>'
+   +'<hr style="border:none;border-top:1px dashed #bbb;margin:8px 0">'
+   +'<div style="font-size:12px;font-weight:bold;margin:6px 0">PAR MODE DE PAIEMENT</div>'
+   +'<table style="width:100%;font-size:12px">'
+   +'<tr><td>Cash</td><td style="text-align:right">'+pay.cash.toFixed(2)+' €</td></tr>'
+   +'<tr><td>Carte</td><td style="text-align:right">'+pay.carte.toFixed(2)+' €</td></tr>'
+   +'<tr><td>Ticket Resto</td><td style="text-align:right">'+pay.ticket.toFixed(2)+' €</td></tr>'
+   +'</table>'
+   +'<hr style="border:none;border-top:1px dashed #bbb;margin:8px 0">'
+   +'<div style="font-size:12px;font-weight:bold;margin:6px 0">TOP ARTICLES</div>'
+   +'<table style="width:100%;font-size:12px">'+topRows+'</table>'
+   +'<hr style="border:none;border-top:1px solid #000;margin:8px 0">'
+   +'<div style="text-align:center;font-size:10px;color:#999">Bey-T Traiteur Libanais - Boulogne-Billancourt</div>';
+  const el=document.getElementById('ticket-print');
+  if(el){
+    el.innerHTML=report;
+    window.print();
+    setTimeout(()=>{el.innerHTML='';},2000);
+  }
 }
 
 /* ════════ SHARED UI ════════ */
