@@ -1,0 +1,41 @@
+
+added 7 packages in 2s
+✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+
+    ../../../../../tmp/app.jsx:147:34:
+      147 │   Object.entries(payMap).forEach(([label,s])=>
+          ╵                                   ^
+
+✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+
+    ../../../../../tmp/app.jsx:161:41:
+      161 │   Object.entries(dayMap).sort().forEach(([date,s])=>
+          ╵                                          ^
+
+✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+
+    ../../../../../tmp/app.jsx:176:42:
+      176 │   Object.entries(hourMap).sort().forEach(([h,s])=>
+          ╵                                           ^
+
+✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+
+    ../../../../../tmp/app.jsx:191:63:
+      191 │ ...ct.entries(prod).sort((a,b)=>b[1].qty-a[1].qty).forEach(([n,s])=>
+          ╵                                                             ^
+
+✘ [ERROR] Transforming destructuring to the configured target environment ("safari14") is not supported yet
+
+    ../../../../../tmp/app.jsx:252:25:
+      252 │   const topRows=top.map(([n,q])=>'<tr><td>'+n+'</td><td style="te...
+          ╵                          ^
+
+✘ [ERROR] Expected ";" but found "AFFAIRES"
+
+    ../../../../../tmp/app.jsx:258:73:
+      258 │ ...ize:12px;font-weight:bold;margin:6px 0">CHIFFRE D'AFFAIRES</div>'
+          │                                                      ~~~~~~~~
+          ╵                                                      ;
+
+6 errors
+BUILD_STATUS=1
