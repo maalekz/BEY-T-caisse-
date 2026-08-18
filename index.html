@@ -21,24 +21,13 @@
     ::-webkit-scrollbar{width:3px;height:3px;}
     ::-webkit-scrollbar-thumb{background:#E0D8C8;border-radius:99px;}
     .sheet-enter{transform:translateY(0)!important;}
-    @media print {
-      body > #root { display: none !important; }
-      #ticket-print { display: block !important; }
-    }
-    #ticket-print {
-      display: none;
-      font-family: monospace;
-      width: 300px;
-      margin: 0 auto;
-      padding: 20px;
-      font-size: 13px;
-      color: #1a1a1a;
-    }
+    @media print { body > #root { display:none!important; } #ticket-print { display:block!important; } }
+    #ticket-print{display:none;font-family:monospace;width:300px;margin:0 auto;padding:20px;font-size:13px;color:#1a1a1a;}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <div id="ticket-print"></div>
-<script src="./bundle.js?v=receipt3-direct-20260818"></script>
+<script src="./bundle.js?v=receipt6-fontc-20260818"></script>
 </body>
 </html>
