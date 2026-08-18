@@ -1,11 +1,12 @@
 (()=>{
   const ORDERS_KEY='beyt_orders_v2';
+  const SIRET='97961448400025';
   const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const eur=n=>(Number(n)||0).toFixed(2)+' EUR';
   const cleanPayment=s=>String(s||'').replace(/[^\wÀ-ÿ\s]/g,'').trim();
   const text=(value,attrs='')=>`<text ${attrs}>${esc(value)}</text>`;
   const feed=(n=1)=>`<feed line="${n}"/>`;
-  const line=()=>text('------------------------------------------')+feed(1);
+  const line=()=>text('--------------------------------------------------------','font="font_b"')+feed(1);
 
   function latestOrder(){
     try{
@@ -18,50 +19,47 @@
     const total=Number(order.total)||0;
     const discount=Number(order.discount)||0;
     const tva=total-total/1.10;
-    const ht=total/1.10;
     let x='<?xml version="1.0" encoding="utf-8"?>';
     x+='<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">';
 
     x+=text('BEY-T','align="center" em="true" width="2" height="2"')+feed(1);
-    x+=text('Traiteur Libanais','align="center"')+feed(1);
-    x+=text('62 Av. Pierre Grenier','align="center"')+feed(1);
-    x+=text('92100 Boulogne-Billancourt','align="center"')+feed(1);
-    x+=line();
-    x+=text(`COMMANDE #${order.num}`,'align="center" em="true" width="2" height="2"')+feed(1);
-    x+=text(`${order.date||''}  ${order.time||''}`,'align="center"')+feed(1);
+    x+=text('Traiteur Libanais','align="center" font="font_b" em="true"')+feed(1);
+    x+=text('62 Av. Pierre Grenier','align="center" font="font_b"')+feed(1);
+    x+=text('92100 Boulogne-Billancourt','align="center" font="font_b"')+feed(1);
+    x+=text(`SIRET : ${SIRET}`,'align="center" font="font_b"')+feed(1);
     x+=line();
 
-    x+=text('DETAIL DE LA COMMANDE','align="left" em="true"')+feed(1);
+    x+=text(`COMMANDE #${order.num}`,'align="center" font="font_b" em="true" width="2" height="2"')+feed(1);
+    x+=text(`${order.date||''}  ${order.time||''}`,'align="center" font="font_b"')+feed(1);
+    x+=line();
+
+    x+=text('DETAIL DE LA COMMANDE','align="left" font="font_b" em="true"')+feed(1);
     (order.items||[]).forEach(it=>{
       const qty=Number(it.qty)||0, price=Number(it.price)||0;
-      x+=text(it.name,'align="left" em="true"')+feed(1);
-      x+=text(`${qty} x ${eur(price)}    ${eur(qty*price)}`,'align="left"')+feed(1);
-      if(it.note) x+=text(`  > ${it.note}`,'align="left"')+feed(1);
-      x+=feed(1);
+      x+=text(it.name,'align="left" font="font_b" em="true"')+feed(1);
+      x+=text(`${qty} x ${eur(price)}    ${eur(qty*price)}`,'align="left" font="font_b"')+feed(1);
+      if(it.note) x+=text(`> ${it.note}`,'align="left" font="font_b"')+feed(1);
     });
 
     if(discount>0){
       x+=line();
-      x+=text(`Remise                         -${eur(discount)}`,'align="left"')+feed(1);
+      x+=text(`Remise : -${eur(discount)}`,'align="right" font="font_b"')+feed(1);
     }
 
     x+=line();
-    x+=text(`TOTAL TTC ${eur(total)}`,'align="center" em="true" width="2" height="2"')+feed(1);
-    x+=text(`Paiement : ${cleanPayment(order.paymentLabel)}`,'align="center" em="true"')+feed(1);
+    x+=text(`TOTAL TTC ${eur(total)}`,'align="center" em="true"')+feed(1);
+    x+=text(`dont TVA 10% : ${eur(tva)}`,'align="center" font="font_b"')+feed(1);
+    x+=text(`Paiement : ${cleanPayment(order.paymentLabel)}`,'align="center" font="font_b" em="true"')+feed(1);
 
     if(order.paymentMode==='cash' && order.cashGiven!=null){
       const given=Number(order.cashGiven)||0;
-      x+=text(`Montant remis : ${eur(given)}`,'align="center"')+feed(1);
-      x+=text(`Monnaie rendue : ${eur(Math.max(0,given-total))}`,'align="center"')+feed(1);
+      x+=text(`Montant remis : ${eur(given)}`,'align="center" font="font_b"')+feed(1);
+      x+=text(`Monnaie rendue : ${eur(Math.max(0,given-total))}`,'align="center" font="font_b"')+feed(1);
     }
 
     x+=line();
-    x+=text(`Total HT : ${eur(ht)}`,'align="left"')+feed(1);
-    x+=text(`TVA 10% : ${eur(tva)}`,'align="left"')+feed(1);
-    x+=text(`Total TTC : ${eur(total)}`,'align="left" em="true"')+feed(1);
-    x+=line();
-    x+=text('Merci pour votre visite !','align="center" em="true"')+feed(1);
-    x+=text('A bientot chez Bey-T','align="center"')+feed(4);
+    x+=text('Merci pour votre visite !','align="center" font="font_b" em="true"')+feed(1);
+    x+=text('A bientot chez Bey-T','align="center" font="font_b"')+feed(2);
     x+='<cut type="feed"/>';
     x+='</epos-print>';
     return x;
