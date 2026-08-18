@@ -23,6 +23,7 @@ jobs:
           import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
+          s=s.replace("CHIFFRE D'AFFAIRES", "CHIFFRE D\\'AFFAIRES")
           m=re.search(r'<script type="text/babel">(.*?)</script>', s, re.S)
           if not m:
               raise SystemExit('text/babel script not found')
@@ -45,7 +46,7 @@ jobs:
           npm install --no-save react@18 react-dom@18 esbuild > build-log.txt 2>&1
           STATUS=$?
           if [ $STATUS -eq 0 ]; then
-            npx esbuild /tmp/app.jsx --bundle --minify --format=iife --target=safari14 --outfile=bundle.js >> build-log.txt 2>&1
+            npx esbuild /tmp/app.jsx --bundle --minify --format=iife --target=es2020 --outfile=bundle.js >> build-log.txt 2>&1
             STATUS=$?
           fi
           echo "BUILD_STATUS=$STATUS" >> build-log.txt
@@ -55,9 +56,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ -f bundle.js ]; then
-            rm -f .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2
-            git add -A index.html bundle.js .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2
-            git commit -m "Bundle app locally for GitHub Pages"
+            rm -f .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2 .trigger-bundle-3 build-log.txt
+            git add -A
+            git commit -m "Fix blank page and bundle app locally"
           else
             git add build-log.txt
             git commit -m "Record app build failure"
