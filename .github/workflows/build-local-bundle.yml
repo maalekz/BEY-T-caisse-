@@ -33,7 +33,7 @@ jobs:
           if old not in code:
               raise SystemExit('React hook declaration not found')
           code=code.replace(old,new,1).replace('ReactDOM.createRoot(', 'createRoot(', 1)
-          Path('/tmp/app.jsx').write_text(code,encoding='utf-8')
+          Path('app.jsx').write_text(code,encoding='utf-8')
           s=re.sub(r'<script src="https://unpkg.com/react@18/umd/react\.production\.min\.js"></script>\s*','',s)
           s=re.sub(r'<script src="https://unpkg.com/react-dom@18/umd/react-dom\.production\.min\.js"></script>\s*','',s)
           s=re.sub(r'<script src="https://unpkg.com/@babel/standalone/babel\.min\.js"></script>\s*','',s)
@@ -46,7 +46,7 @@ jobs:
           npm install --no-save react@18 react-dom@18 esbuild > build-log.txt 2>&1
           STATUS=$?
           if [ $STATUS -eq 0 ]; then
-            npx esbuild /tmp/app.jsx --bundle --minify --format=iife --target=es2020 --outfile=bundle.js >> build-log.txt 2>&1
+            npx esbuild app.jsx --bundle --minify --format=iife --target=es2020 --outfile=bundle.js >> build-log.txt 2>&1
             STATUS=$?
           fi
           echo "BUILD_STATUS=$STATUS" >> build-log.txt
@@ -56,7 +56,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ -f bundle.js ]; then
-            rm -f .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2 .trigger-bundle-3 build-log.txt
+            rm -f .github/workflows/build-local-bundle.yml .trigger-bundle .trigger-bundle-2 .trigger-bundle-3 .trigger-bundle-4 build-log.txt app.jsx package.json package-lock.json
             git add -A
             git commit -m "Fix blank page and bundle app locally"
           else
