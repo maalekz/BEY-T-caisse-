@@ -1,0 +1,85 @@
+name: Add TM Print Assistant integration
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Rebuild app with TM Print Assistant
+        run: |
+          git show 7aff5a038fe493d229fff04a32b88728f4b9f872:index.html > source.html
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('source.html')
+          s=p.read_text(encoding='utf-8')
+          m=re.search(r'<script type="text/babel">(.*?)</script>',s,re.S)
+          if not m: raise SystemExit('babel script missing')
+          code=m.group(1)
+
+          start=code.index('function doPrint(order){')
+          end=code.index('\n}\n\n/* ── Print Z-Report', start)+2
+          replacement=r'''function xmlEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function openTMPrintAssistant(xml){
+  const url="tmprintassistant://tmprintassistant.epson.com/print?ver=1&data-type=eposprintxml&data="+encodeURIComponent(xml);
+  window.location.href=url;
+}
+function doPrint(order){
+  const remise=order.discount||0;
+  let xml='<?xml version="1.0" encoding="utf-8"?>';
+  xml+='<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">';
+  xml+='<text align="center"/><text em="true" width="2" height="2">BEY-T</text><feed line="1"/>';
+  xml+='<text em="false" width="1" height="1">62 Av. Pierre Grenier\n92100 Boulogne-Billancourt</text><feed line="1"/>';
+  xml+='<text>------------------------------------------\n</text>';
+  xml+='<text em="true" width="2" height="2">#'+xmlEsc(order.num)+'</text><feed line="1"/>';
+  xml+='<text em="false" width="1" height="1">'+xmlEsc(order.date)+'  '+xmlEsc(order.time)+'</text><feed line="1"/>';
+  xml+='<text>------------------------------------------\n</text><text align="left"/>';
+  order.items.forEach(it=>{
+    xml+='<text em="true">'+xmlEsc(it.name)+'</text><feed line="1"/>';
+    if(it.note) xml+='<text>'+xmlEsc(it.note)+'</text><feed line="1"/>';
+    xml+='<text>'+xmlEsc('  '+it.qty+' x '+it.price.toFixed(2)+' EUR = '+(it.price*it.qty).toFixed(2)+' EUR')+'</text><feed line="1"/>';
+  });
+  if(remise>0) xml+='<text>'+xmlEsc('Remise : -'+remise.toFixed(2)+' EUR')+'</text><feed line="1"/>';
+  xml+='<text>------------------------------------------\n</text>';
+  xml+='<text align="center" em="true" width="2" height="2">TOTAL '+xmlEsc(order.total.toFixed(2))+' EUR</text><feed line="1"/>';
+  xml+='<text em="false" width="1" height="1">'+xmlEsc(order.paymentLabel.replace(/[^\w\s]/g,"").trim())+'</text><feed line="1"/>';
+  if(order.paymentMode==="cash") xml+='<text>'+xmlEsc('Rendu : '+(order.cashGiven-order.total).toFixed(2)+' EUR')+'</text><feed line="1"/>';
+  xml+='<feed line="1"/><text>HT : '+xmlEsc((order.total/1.1).toFixed(2))+' EUR   TVA 10% : '+xmlEsc((order.total-order.total/1.1).toFixed(2))+' EUR</text>';
+  xml+='<feed line="2"/><text>Merci ! A bientot chez Bey-T</text><feed line="4"/><cut type="feed"/></epos-print>';
+  openTMPrintAssistant(xml);
+}'''
+          code=code[:start]+replacement+code[end:]
+          code=code.replace("CHIFFRE D'AFFAIRES", "CHIFFRE D\\'AFFAIRES")
+          code=code.replace('const {useState,useEffect,useRef,useCallback}=React;',"import React, {useState,useEffect,useRef,useCallback} from 'react';\nimport {createRoot} from 'react-dom/client';",1)
+          code=code.replace('ReactDOM.createRoot(', 'createRoot(', 1)
+          Path('app.jsx').write_text(code,encoding='utf-8')
+
+          html=s[:m.start()]+'<script src="./bundle.js?v=tmprint1"></script>'+s[m.end():]
+          html=re.sub(r'<script src="https://unpkg.com/react@18/umd/react\.production\.min\.js"></script>\s*','',html)
+          html=re.sub(r'<script src="https://unpkg.com/react-dom@18/umd/react-dom\.production\.min\.js"></script>\s*','',html)
+          html=re.sub(r'<script src="https://unpkg.com/@babel/standalone/babel\.min\.js"></script>\s*','',html)
+          Path('index.html').write_text(html,encoding='utf-8')
+          PY
+          npm install --no-save react@18 react-dom@18 esbuild
+          npx esbuild app.jsx --bundle --minify --format=iife --target=es2020 --outfile=bundle.js
+          rm -f app.jsx source.html .github/workflows/add-tm-print-assistant.yml .trigger-tmprint build-log.txt
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add Epson TM Print Assistant Bluetooth printing"
+          git push
