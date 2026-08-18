@@ -1,0 +1,42 @@
+name: Diagnose JSX
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Extract Babel script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf-8')
+          m=re.search(r'<script type="text/babel">(.*?)</script>',s,re.S)
+          if not m: raise SystemExit('babel script not found')
+          Path('/tmp/app.jsx').write_text(m.group(1),encoding='utf-8')
+          PY
+      - name: Install parser
+        run: npm install --no-save @babel/parser
+      - name: Parse JSX
+        run: |
+          node - <<'JS'
+          const fs=require('fs');
+          const parser=require('@babel/parser');
+          const code=fs.readFileSync('/tmp/app.jsx','utf8');
+          try {
+            parser.parse(code,{sourceType:'script',plugins:['jsx']});
+            console.log('JSX_PARSE_OK');
+          } catch(e) {
+            console.error('JSX_PARSE_ERROR');
+            console.error(e.message);
+            console.error('line='+e.loc.line+' column='+e.loc.column);
+            process.exit(1);
+          }
+          JS
