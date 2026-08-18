@@ -160,8 +160,7 @@ function exportCSV(orders){
   orders.forEach(o=>o.items.forEach(it=>{if(!prod[it.name])prod[it.name]={qty:0,rev:0};prod[it.name].qty+=it.qty;prod[it.name].rev+=it.price*it.qty;}));
   rows.push([],["=== TOP ARTICLES ==="],["Article","Qté","CA (€)"]);
   Object.entries(prod).sort((a,b)=>b[1].qty-a[1].qty).forEach(([n,s])=>rows.push([n,s.qty,s.rev.toFixed(2).replace(".",",")]));
-  const csv="﻿"+rows.map(r=>Array.isArray(r)?r.map(Q).join(";"):"").join("
-");
+  const csv="﻿"+rows.map(r=>Array.isArray(r)?r.map(Q).join(";"):"").join("\n");
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
   a.download="beyt_"+new Date().toLocaleDateString("fr-FR").replace(/\//g,"-")+".csv";
